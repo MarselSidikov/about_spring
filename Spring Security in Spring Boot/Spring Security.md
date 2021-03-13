@@ -336,3 +336,6 @@ public class UsernamePasswordAuthenticationFilter extends AbstractAuthentication
 	// ...
 ```
 
+## Общая схема работы Spring Security
+
+![MAIN](https://github.com/MarselSidikov/about_spring/blob/master/images/main.png)
