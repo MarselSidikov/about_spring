@@ -8,13 +8,13 @@
 
 * `Authentication` - объект, который хранит для каждого запроса информацию о пользователе (доверителе) и статусе его аутентификации.
 
-* `SecurityContext` - информация о безопасности, которая ассоциирована с текущим ПОТОКОМ ИСПОЛНЕНИЯ. Хранит объект Authentication
+* `SecurityContext` - информация о безопасности, которая ассоциирована с текущим потоком исполнения. Хранит объект `Authentication`.
 
-* `SecurityContextHolder` - привязывает SecurityContext к текущему потоку исполнения. По умолчанию ThreadLocal - контекст безопосности доступен всем методам, исполняемым в рамках данного потока.
+* `SecurityContextHolder` - привязывает `SecurityContext` к текущему потоку исполнения. По умолчанию `ThreadLocal` - контекст безопосности доступен всем методам, исполняемым в рамках данного потока.
 
 ## DelegatingFilterProxy 
 
-Поскольку фильтры являются компонентами спецификации Servler API и не являются частью инфраструктуры Spring-а, они не имеют доступа к `ApplicationContext`. 
+Поскольку фильтры являются компонентами спецификации `Servlet API` и не являются частью инфраструктуры Spring-а, они не имеют доступа к `ApplicationContext`. 
 
 Для того, чтобы решить эту проблему и сделать некоторые фильтры Spring-managed (т.е. бинами), при запуске приложения создается экземпляр класса-фильтра `DelegatingFilterProxy`, содержащий параметр `targetBeanName`. Как только запрос попадает в `DelegatingFilterProxy`, он делегируется на обработку фильтру-бину, название которого указано в параметре `targetBeanName`.
 
@@ -88,7 +88,7 @@ public class SecurityFilterAutoConfiguration {
     // ...
 ```
 
-Данный компонент содержит метод для получения полноценного `DelegatingFilterProxy`:
+Данный компонент содержит метод для получения объекта `DelegatingFilterProxy`:
 
 ```JAVA
 package org.springframework.boot.web.servlet;
@@ -107,9 +107,9 @@ public class DelegatingFilterProxyRegistrationBean {
 
 ## FilterChainProxy
 
-В части инфраструктуры Spring Security `DelegatingFilterProxy` первым принимает запрос и направляет его фильтрам цепочке фильтров безопасности (бину со значением, которое указано в `targetBeanName`). В качестве `targetBeanName` как правило указывается бин `springSecurityFilterChain`.
+В части инфраструктуры Spring Security `DelegatingFilterProxy` первым принимает запрос и направляет его  цепочке фильтров безопасности (бину со значением, которое указано в `targetBeanName`). В качестве `targetBeanName` как правило указывается бин `springSecurityFilterChain`.
 
-Ниже приведен код инициализации бина `springSecurityFilterChain`:
+Ниже приведен код инициализации бина `springSecurityFilterChain` в классе конфигурации Spring:
 
 ```JAVA
 package org.springframework.security.config.annotation.web.configuration;
@@ -128,7 +128,7 @@ public class WebSecurityConfiguration implements ImportAware, BeanClassLoaderAwa
 
 Что же представляет из себя бин `springSecurityFilterChain`? В качестве реализации данного бина используется класс `FilterChainProxy`, содержащий фильтры для обеспечения безопасности приложения:
 
-[рисунок]
+![FilterChainProxy](https://github.com/MarselSidikov/about_spring/blob/master/images/security-filters.png)
 
 Для каждого запроса создается "виртуальная цепочка фильтров" (Spring Security Filters), внутри которых происходит проверка безопасности запроса. При этом каждый из фильтров имеет возможность "заблокировать запрос", если он не соответствует критериям безопасности. Также, поскольку `FilterChainProxy` является бином, каждый из фильтров цепочки имеет доступ к контексту Spring.	
 
@@ -150,7 +150,7 @@ public class FilterChainProxy extends GenericFilterBean {
 }
 ```
 
-В свою очередь, `VirtualFilterChain`, как вложенный класс `FilterChainProxy` содержит список фильтров, которые необходимо применить к текущему URL:
+В свою очередь, `VirtualFilterChain`, как вложенный класс `FilterChainProxy`, содержит список фильтров, которые необходимо применить к текущему URL:
 
 ```JAVA
 private static final class VirtualFilterChain implements FilterChain {
@@ -307,11 +307,16 @@ public class LogoutFilter extends GenericFilterBean {
 	}
 ```
 
+* Обработчики `LogoutFilter`
+
+![Logout Handlers](https://github.com/MarselSidikov/about_spring/blob/master/images/logout_handlers.png)
+
+
 ## Аутентификация
 
-До этого мы рассмотрели компоненты Spring Security, работающие в момент отправки запроса "залогиненным" пользователем. Теперь рассмотрим случай, когда пользователь вводит логин-пароль и для него требуется аутентификация.
+Мы рассмотрели компоненты Spring Security, работающие в момент отправки запроса "залогиненным" пользователем. Теперь рассмотрим случай, когда пользователь вводит логин-пароль и для него требуется аутентификация.
 
-В очереди `VirtualFilterChain` следующим после `LogoutFilter` идет `UsernamePasswordAuthenticationFilter`, задачей которго является непосредственная аутентификация пользователя. Данный фильтр отрабатывает в случае стандартной настройки Spring Security в Spring Boot. Основная логика аутентификации описана в классе-предке `AbstractAuthenticationProcessingFilter`. Непосредственно внутри `
+В очереди `VirtualFilterChain` следующим после `LogoutFilter` идет `UsernamePasswordAuthenticationFilter`, задачей которго является аутентификация пользователя. Данный фильтр отрабатывает в случае стандартной настройки Spring Security в Spring Boot. Основная логика аутентификации описана в классе-предке `AbstractAuthenticationProcessingFilter`. Непосредственно внутри `
 UsernamePasswordAuthenticationFilter` создается объект-имплементация `Authentication` - `UsernamePasswordAuthenticationToken`, включающего логин и пароль пользователя. После чего данный объект направляется компоненту `AuthenticationManager`, выполняющему проверку данных пользователя.
 
 
