@@ -501,7 +501,7 @@ public class ProviderManager implements AuthenticationManager, MessageSourceAwar
 
 ![PROVIDER](https://github.com/MarselSidikov/about_spring/blob/master/images/Provider.png)
 
-Мы видим, что наш `AuthenticationProvider` в списке провайдеров содержит экземпляры `AnonymousAuthenticationProvider` и `RememberMeAuthenticationProvider`. В качестве parent-менеджера по умолчанию задан аналогичный экземпляр `ProverManager`, содержащий `DaoAuthenticationProvider` внутри списка провайдеров. 
+Мы видим, что наш `AuthenticationProvider` в списке провайдеров содержит экземпляры `AnonymousAuthenticationProvider` и `RememberMeAuthenticationProvider`. В качестве parent-менеджера по умолчанию задан аналогичный экземпляр `ProviderManager`, содержащий `DaoAuthenticationProvider` внутри списка провайдеров. 
 
 Таким образом, объект `Authentication` проходит следующий путь:
 
@@ -511,7 +511,7 @@ public class ProviderManager implements AuthenticationManager, MessageSourceAwar
 
 По факту, классы `AnonymousAuthenticationProvider` и `RememberMeAuthenticationProvider` не представляют для нас большого интереса, поэтому отложим их рассмотрение.
 
-Но, какую роль играет parent-менеджер? На самом деле, в приложениях защищенные ресурсы подвергаются логической группировке (например, все ресурсы, которые соответствуют паттерну `/api/**`, либо `/static/**` и т.д.). Для каждой из таких групп назначается свой выделенный `AuthenticationManager`. При этом, для каждого из выделенных менеджеров сущесвтует parent-менеджер, который является глобальным и используется, когда ни один из менеджеров не может принять решение об аутентификации. 
+Но, какую роль играет parent-менеджер? На самом деле, в приложениях защищенные ресурсы подвергаются логической группировке (например, все ресурсы, которые соответствуют паттерну `/api/**`, либо `/static/**` и т.д.). Для каждой из таких групп назначается свой выделенный `AuthenticationManager`. При этом, для каждого из выделенных менеджеров существует parent-менеджер, который является глобальным и используется, когда ни один из менеджеров не может принять решение об аутентификации. 
 
 ![PROVIDERS HIERARCHY](https://github.com/MarselSidikov/about_spring/blob/master/images/hierarchy.png)
 
@@ -671,16 +671,6 @@ public class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
 
 В таком случае для аутентифицированного пользователя запрос после прохождения цепочки фильтров попадает в последний - `FilterSecurityInterceptor`, задачей которого является авторизация пользоавтеля по URL:
 
-
-
-Рассмотрим интерфейс `AccessDecisionManager`, объектам-имплементациям которого делегируется работа по авторизации пользователя:
-
-```
-package org.springframework.security.web.access.intercept;
-
-
-```
-
 ```JAVA
 public class FilterSecurityInterceptor extends AbstractSecurityInterceptor implements Filter {
 
@@ -745,7 +735,7 @@ public abstract class AbstractSecurityInterceptor
 }
 ```
 
-В свою очередь, интерфейс `AccessDecisionManager` содержит шлавный метод авторизации:
+В свою очередь, интерфейс `AccessDecisionManager` содержит главный метод авторизации:
 
 ```JAVA
 package org.springframework.security.access;
