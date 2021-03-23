@@ -807,6 +807,108 @@ public class AffirmativeBased extends AbstractAccessDecisionManager {
 
 Следовательно, внутри `AttempBased` с помощью единственного voter-а `WebExpressionVoter` происходит решение, стоит ли предоставить доступ к объекту `FilterInvocation [GET /users]` с учетом атрибута-правила `hasAuthority('ADMIN')`.
 
+# Работа с сессиями
+
+Возможность хранения сессий в базе данных позволяет избежать неудобств использования приложения при его редеплое. Таким образом, все аутентифицированные пользователи будут иметь возможность работать с приложением после его перезагрузки, поскольку сессии и их атрибуты хранятся не в оперативной памяти, а в СУБД. Для реализации подхода хранения сессий в базе данных следует подключить зависимость:
+
+```xml
+<dependency>
+    <groupId>org.springframework.session</groupId>
+	<artifactId>spring-session-jdbc</artifactId>
+</dependency>
+```
+
+При соответствующих настройках Spring Boot или Spring приложения в базе данных будут созданы таблицы `spring_session` и `spring_session_attributes` для хранения информации о сессиях.
+
+В данной зависимости находится класс-конфигурация `SpringHttpSessionConfiguration`, в котором описан бин `springSessionRepositoryFilter`, задачей которого является взаимодействие с хранилищем сессий, отличным от стандартного. 
+
+```JAVA
+package org.springframework.session.config.annotation.web.http;
+
+@Configuration(proxyBeanMethods = false)
+public class SpringHttpSessionConfiguration implements ApplicationContextAware {
+
+	// ...
+
+	@Bean
+	public <S extends Session> SessionRepositoryFilter<? extends Session> springSessionRepositoryFilter(
+			SessionRepository<S> sessionRepository) {
+		SessionRepositoryFilter<S> sessionRepositoryFilter = new SessionRepositoryFilter<>(sessionRepository);
+		sessionRepositoryFilter.setHttpSessionIdResolver(this.httpSessionIdResolver);
+		return sessionRepositoryFilter;
+	}
+
+	// ...
+}
+```
+
+`SessionRepositoryFilter` попадает в цепочку основную цепочку фильтров и  взаимодействует с `SessionRepository`, реализации которого представляют из себя различные виды хранилища сессий. В нашем случае используется `JdbcIndexedSessionRepository`, запрашивающий и сохраняющий сессии в СУБД.
+
+![SESSIONS](https://github.com/MarselSidikov/about_spring/blob/master/images/session_filter_position.png)
+
+В свою очередь, основной задачей `SessionRepositoryFilter` является подмена объекта Servlet API `HttpSession` объектом Spring `Session`. Достигается это с помощью обертывания `HttpServletRequest` и переопределением методов для получения `Session`-объектов из `SessionRepository` вместо объектов `HttpSession`.
+
+```JAVA
+package org.springframework.session.web.http;
+
+public class SessionRepositoryFilter<S extends Session> extends OncePerRequestFilter {
+	// ...
+
+	private final SessionRepository<S> sessionRepository; // используется реализация JdbcIndexedSessionRepository
+
+	// ...
+
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
+		request.setAttribute(SESSION_REPOSITORY_ATTR, this.sessionRepository);
+
+		// обертывание запросов
+		SessionRepositoryRequestWrapper wrappedRequest = new SessionRepositoryRequestWrapper(request, response);
+		SessionRepositoryResponseWrapper wrappedResponse = new SessionRepositoryResponseWrapper(wrappedRequest,
+				response);
+
+		try {
+			filterChain.doFilter(wrappedRequest, wrappedResponse);
+		}
+		finally {
+			wrappedRequest.commitSession();
+		}
+	}
+
+	// ...
+
+	// внутренний класс, обертка над HttpServletRequest
+	private final class SessionRepositoryRequestWrapper extends HttpServletRequestWrapper {
+
+		// ...
+
+		// сохранение сессии в БД
+		private void commitSession() {
+			// ...
+			SessionRepositoryFilter.this.sessionRepository.save(session);
+			// ...
+
+		}
+
+		// получение текущей сессии
+		private S getRequestedSession() {
+			// ...
+					// получение сессии из репозитория по ее id
+					S session = SessionRepositoryFilter.this.sessionRepository.findById(sessionId);
+					if (session != null) {
+						this.requestedSession = session;
+						this.requestedSessionId = sessionId;
+						break;
+					}
+				
+			// ...
+			return this.requestedSession;
+		}
+	}
+}
+```
+
 ## Общая схема работы Spring Security
 
 ![MAIN](https://github.com/MarselSidikov/about_spring/blob/master/images/main.png)
