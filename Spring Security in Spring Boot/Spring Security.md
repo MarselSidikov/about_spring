@@ -842,7 +842,7 @@ public class SpringHttpSessionConfiguration implements ApplicationContextAware {
 }
 ```
 
-`SessionRepositoryFilter` попадает в цепочку основную цепочку фильтров и  взаимодействует с `SessionRepository`, реализации которого представляют из себя различные виды хранилища сессий. В нашем случае используется `JdbcIndexedSessionRepository`, запрашивающий и сохраняющий сессии в СУБД.
+`SessionRepositoryFilter` попадает в основную цепочку фильтров и  взаимодействует с `SessionRepository`, реализации которого представляют из себя различные виды хранилища сессий. В нашем случае используется `JdbcIndexedSessionRepository`, запрашивающий и сохраняющий сессии в СУБД.
 
 ![SESSIONS](https://github.com/MarselSidikov/about_spring/blob/master/images/session_filter_position.png)
 
